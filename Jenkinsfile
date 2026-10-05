@@ -49,5 +49,29 @@ pipeline {
                 '''
             }
         }
+	stage('Docker push') {
+	    steps {
+		withCredentials([
+		    usernamePassword(
+			credentialId: 'dockerhub-devboard'
+			usernameVariable: 'DOCKERHUB_USERNAME'
+			passwordVariable: 'DOCKERHUB_PASSWORD'
+		   )
+			
+		])
+		{
+                  sh '''
+			echo "$DOCKERHUB_PASSWORD" | docker login \
+			-u "$DOCKERHUB_USERNAME" \
+			--password-stdin
+
+			docker push kevaldevganiya2005/devboard-backend:latest
+			docker push kevaldevganiya2005/devboard-frontend:latest
+
+			docker logout
+		     '''
+		}
+	   }
+	}
     }
 }
