@@ -27,5 +27,27 @@ pipeline {
                 '''
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                    docker build \
+                      -t kevaldevganiya2005/devboard-backend:latest \
+                      ./backend
+
+                    docker build \
+                      -t kevaldevganiya2005/devboard-frontend:latest \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Docker Images Check') {
+            steps {
+                sh '''
+                    docker images | grep devboard
+                '''
+            }
+        }
     }
 }
