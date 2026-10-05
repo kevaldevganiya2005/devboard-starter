@@ -54,15 +54,15 @@ pipeline {
 		withCredentials([
 		    usernamePassword(
 			credentialId: 'dockerhub-devboard'
-			usernameVariable: 'DOCKERHUB_USERNAME'
-			passwordVariable: 'DOCKERHUB_PASSWORD'
+			usernameVariable: 'DOCKER_USERNAME'
+			passwordVariable: 'DOCKER_PASSWORD'
 		   )
 			
 		])
 		{
                   sh '''
-			echo "$DOCKERHUB_PASSWORD" | docker login \
-			-u "$DOCKERHUB_USERNAME" \
+			echo "$DOCKER_PASSWORD" | docker login \
+			-u "$DOCKER_USERNAME" \
 			--password-stdin
 
 			docker push kevaldevganiya2005/devboard-backend:latest
