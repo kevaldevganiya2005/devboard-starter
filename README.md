@@ -197,4 +197,4 @@ https://github.com/kevaldevganiya2005
 
 ---
 
-This project is part of my journey toward becoming a Backend Developer with strong DevOps and Cloud skills.
+This project is part of my journey with strong DevOps and Cloud skills.
