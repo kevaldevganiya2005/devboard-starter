@@ -1,0 +1,47 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: frontend-deployment
+  namespace: devboard
+
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+        app: frontend
+
+  template:
+    metadata:
+      labels:
+        app: frontend
+
+    spec:
+      containers:
+        - name: frontend
+          image: kevaldevganiya2005/devboard-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4173
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4173
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4173
+            initialDelaySeconds: 15
+            periodSeconds: 10

@@ -1,234 +1,200 @@
-# DevBoard — Advanced (UI + Go + Postgres)
+# DevBoard — Full-Stack DevOps Project
 
-This is the same DevBoard UI as the `master` branch, but now the data comes
-from a **real backend** instead of fake in-memory data.
+DevBoard is a full-stack task management application built with React, Go and PostgreSQL.
 
-Three pieces talk to each other:
+I use this project to practice real-world DevOps concepts including Docker, Jenkins CI, Docker Hub and Kubernetes.
 
-```
-browser  →  frontend (React)  →  backend (Go API)  →  database (Postgres)
-```
+## Architecture
 
-- **frontend** — the React app. It also forwards anything starting with `/api`
-  to the backend.
-- **backend** — a small Go program that reads and writes the database.
-- **database** — Postgres, with some example projects and tasks loaded on first
-  start.
+GitHub
+  |
+  v
+Jenkins CI
+  |
+  +-- Backend Tests
+  +-- Frontend Build
+  +-- Docker Build
+          |
+          v
+      Docker Hub
+          |
+          v
+     Kubernetes
+      /   |   \
+ Frontend Backend PostgreSQL
+    |       |       |
+ Service  Service   PVC
+      \    |      /
+        Ingress
 
-There's no login and no AI here on purpose. The whole point is to *see how the
-pieces connect*.
+## Tech Stack
 
----
+### Application
+- React
+- Vite
+- Go
+- PostgreSQL
 
-## What you need
+### DevOps
+- Git
+- GitHub
+- Docker
+- Docker Compose
+- Docker Hub
+- Jenkins
+- Kubernetes
+- Kind
+- NGINX Ingress
 
-- **Docker** (with Docker Compose, which comes with Docker Desktop).
-- That's it. You do **not** need Node, Go, or Postgres installed — they all run
-  inside containers.
+## Project Structure
 
----
+- backend/ — Go backend API
+- frontend/ — React frontend
+- k8s/ — Kubernetes manifests
+- Jenkinsfile — Jenkins CI pipeline
+- docker-compose.yml — local container setup
+- README.md — project documentation
 
-## Part 1 — The manual way (do it by hand to understand it)
+## Docker
 
-Run all commands from this folder. We'll start the three pieces one by one, the
-hard way, so you can see exactly what Docker Compose does for you later.
+Docker images:
 
-### Step 1: Create a network
+- kevaldevganiya2005/devboard-backend:latest
+- kevaldevganiya2005/devboard-frontend:latest
 
-Containers can only find each other by name if they're on the **same network**.
-So first we make one:
+The application can also be run locally using Docker Compose.
 
-```bash
-docker network create devboard-net
-```
+## Jenkins CI
 
-### Step 2: Build the images
+Jenkins automates the CI pipeline:
 
-The frontend and backend are *our* code, so we build an image for each. The
-database is not our code — it's the official Postgres image — so there's
-nothing to build for it.
+Checkout
+  |
+Backend Tests
+  |
+Frontend Build
+  |
+Docker Build
+  |
+Docker Image Verification
+  |
+Docker Hub Push
 
-```bash
-docker build -t devboard-frontend ./frontend
-docker build -t devboard-backend ./backend
-```
+## Kubernetes
 
-The first build downloads base images and compiles the code, so it can take a
-few minutes. Later builds are much faster.
+The application is deployed on a Kind Kubernetes cluster.
 
-### Step 3: Run the database
+Kubernetes resources used:
 
-We name it `postgres`. The backend will look for it by that exact name. The
-`-v ./init/postgres:...` line loads the example data the first time it starts.
+- Namespace
+- Deployment
+- Service
+- Secret
+- PersistentVolumeClaim
+- Ingress
+- Readiness Probe
+- Liveness Probe
+- Resource Requests and Limits
+- RollingUpdate
 
-```bash
-docker run -d --name postgres --network devboard-net \
-  -e POSTGRES_USER=devboard \
-  -e POSTGRES_PASSWORD=devboard \
-  -e POSTGRES_DB=devboard \
-  -v "$PWD/init/postgres":/docker-entrypoint-initdb.d:ro \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
+## PostgreSQL
 
-### Step 4: Run the backend
+PostgreSQL runs inside Kubernetes and uses a PersistentVolumeClaim for persistent storage.
 
-We name it `backend` (the frontend looks for this name). We also tell it how to
-reach the database with `POSTGRES_URL` — notice it uses the name `postgres`.
+The backend connects to PostgreSQL through the Kubernetes Service:
 
-```bash
-docker run -d --name backend --network devboard-net \
-  -e PORT=8080 \
-  -e POSTGRES_URL="postgres://devboard:devboard@postgres:5432/devboard?sslmode=disable" \
-  -p 8081:8080 \
-  devboard-backend
-```
+postgres:5432
 
-### Step 5: Run the frontend
+## Health Checks
 
-It serves the app on port 4173 inside the container; we map it to 8080 on your
-machine.
+Backend health endpoint:
 
-```bash
-docker run -d --name frontend --network devboard-net \
-  -p 8080:4173 \
-  devboard-frontend
-```
+GET /health
 
-### Step 6: Open it and check
+Example response:
 
-Open **http://localhost:8080** in your browser — you should see the DevBoard
-dashboard with some example tasks. (If the page shows an error for a second on
-first load, the backend is still starting up — just refresh.)
+{"service":"backend","status":"ok"}
 
-Then check the wiring from the terminal:
+Kubernetes uses this endpoint for readiness and liveness probes.
 
-```bash
-curl http://localhost:8081/health                      # backend says OK
-curl "http://localhost:8080/api/tasks?project_id=1"    # app → backend → database
-```
+## Configuration and Secrets
 
-### Step 7: Stop and clean up
+Database connection information is provided to the backend through Kubernetes Secrets.
 
-```bash
-docker rm -f frontend backend postgres
-docker network rm devboard-net
-```
+Sensitive database credentials are not committed directly into application source code.
 
-### The one thing to remember: names
+## DevOps Concepts Practiced
 
-The backend finds the database using the name `postgres` (see `POSTGRES_URL`).
-The frontend finds the backend using the name `backend` (see
-`frontend/vite.config.js`). So those container **names must match**, and they
-only work because everything is on the same `devboard-net` network.
+- Git and GitHub
+- Docker
+- Docker Compose
+- Docker Hub
+- Jenkins CI
+- Docker image build and push
+- Kubernetes Deployments
+- Kubernetes Services
+- Kubernetes Secrets
+- PersistentVolumeClaim
+- Ingress
+- Health probes
+- Resource requests and limits
+- Rolling Updates
+- Kubernetes networking
+- Service discovery
+- PostgreSQL persistence
+- Kubernetes troubleshooting
 
-That's a lot of typing, and you have to start them in the right order. This is
-exactly the problem Docker Compose solves.
+## Current Status
 
----
+### Completed
 
-## Part 2 — The easy way: Docker Compose
+- Full-stack application
+- Dockerized frontend and backend
+- Docker Compose
+- Jenkins CI pipeline
+- Docker Hub image publishing
+- Kubernetes deployment
+- PostgreSQL persistence
+- Health probes
+- Resource management
+- Kubernetes Services
+- Ingress configuration
 
-Compose does everything from Part 1 — the network, the names, the order, the
-environment values — from one file (`docker-compose.yml`).
+### Planned
 
-First, create your settings file (one time only). Compose reads it to fill in
-passwords and ports, so the stack won't start without it:
+- Jenkins to Kubernetes Continuous Deployment
+- Automated Kubernetes deployments
+- HPA
+- Prometheus
+- Grafana
+- Centralized logging
+- Cloud deployment
 
-```bash
-cp .env.example .env
-```
+## DevOps Workflow
 
-Then start everything with one command:
+Code
+  |
+GitHub
+  |
+Jenkins
+  |
+Tests
+  |
+Docker Build
+  |
+Docker Hub
+  |
+Kubernetes
+  |
+Application
 
-```bash
-docker compose up --build
-```
+## Author
 
-The first build can take a few minutes. When it's done, open
-**http://localhost:8080** in your browser.
+Keval Devganiya
 
-Stop it:
-
-```bash
-docker compose down
-```
-
-| Piece    | Open in browser / curl        | Notes                                   |
-| -------- | ----------------------------- | --------------------------------------- |
-| Frontend | http://localhost:8080         | the app; forwards `/api` to the backend |
-| Backend  | http://localhost:8081/health  | the Go API (the app uses it via `/api`) |
-| Postgres | localhost:5432                | user / password: `devboard` / `devboard`|
-
----
-
-## Part 3 — The shortcut: `make`
-
-You don't even have to remember the Compose commands. Run `make` to see what's
-available:
-
-```bash
-make           # list all commands
-make setup     # create your .env file (first time only)
-make up        # build and start everything
-make down      # stop everything
-make logs      # watch the logs
-make reset     # wipe the database and start fresh
-make smoke     # quick check that everything works
-```
-
-`make up` creates `.env` for you automatically, so it's the simplest way to start.
-
-> `make` is optional. It's already available on Linux and macOS (on macOS you may
-> need Xcode Command Line Tools: `xcode-select --install`). On Windows, either use
-> WSL or just run the `docker compose` commands from Part 2 directly.
-
----
-
-## Settings live in `.env`
-
-All the changeable values (passwords, ports) live in one file. The first time,
-copy the example:
-
-```bash
-cp .env.example .env     # or: make setup
-```
-
-`.env.example` is the template kept in git. Your real `.env` is ignored by git,
-so in a real project your secrets never get committed.
+GitHub:
+https://github.com/kevaldevganiya2005
 
 ---
 
-## The API (for reference)
-
-The browser calls these as `/api/...`; the backend serves them at the root.
-
-| Method | Path                      | What it does                          |
-| ------ | ------------------------- | ------------------------------------- |
-| GET    | `/projects`               | list projects                         |
-| POST   | `/projects`               | create a project                      |
-| GET    | `/tasks?project_id=N`     | list tasks in a project               |
-| POST   | `/tasks`                  | create a task                         |
-| PATCH  | `/tasks/:id`              | update a task (e.g. change status)    |
-| GET    | `/search?q=&project_id=N` | search tasks by title                 |
-| GET    | `/health`                 | health check                          |
-
-## Folder layout
-
-```
-.
-├── docker-compose.yml   starts frontend + backend + postgres together
-├── Makefile             short commands (make up, make down, ...)
-├── .env.example         template for settings (copy to .env)
-├── frontend/            React app (Vite). Serves the UI, forwards /api
-├── backend/             Go API (main.go + Dockerfile)
-└── init/postgres/       schema + example data, loaded on first start
-```
-
----
-
-This repo intentionally ships without `.github/workflows` or `k8s/` — you'll
-build the CI/CD pipeline and the Kubernetes manifests yourself as part of the
-masterclass, starting from this working app.
-
-
+This project is part of my journey toward becoming a Backend Developer with strong DevOps and Cloud skills.
